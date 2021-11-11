@@ -1,0 +1,13 @@
+body {
+    background-color: #ececec;
+    font-family: 'Roboto', sans-serif;
+}
+
+main {
+    margin: 20px auto 0;
+    max-width: 800px;
+}
+
+span#total-candidates::after {
+    content: attr(data-total);
+}
