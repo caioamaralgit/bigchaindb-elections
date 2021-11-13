@@ -1,5 +1,5 @@
 const express = require('express');
-const { returnBigchainDBConnection, returnNewUser, registerNewVote, transferVote } = require('./bigchaindb');
+const { returnBigchainDBConnection, returnNewUser, registerNewVote, transferVote, getCandidateVotes } = require('./bigchaindb');
 
 require('dotenv').config();
 
@@ -61,24 +61,31 @@ app.post("/vote", async (request, response) => {
 
     const voterKeys = await returnNewUser(baseSeedWord);
 
-    const vote = await registerNewVote(voter, voterKeys, bigchainDbConnection);
+    const vote = await registerNewVote(voter, voterKeys, { name: candidate.name, number: candidateNumber}, bigchainDbConnection);
 
     if (!vote.success) {
         response.send({ success: false, error: "Falha ao criar voto." });
         return;
     }
 
-    const transferVote = await transferVote(vote.id, voterKeys, candidate.keys, bigchainDbConnection);
-
-    if (!transferVote.success) {
-        response.send({ success: false, error: "Falha ao transferir voto." });
-        return;
-    }
-
     response.send({
         success: true,
-        id: transferVote.id
+        id: vote.id
     });
 });
+
+app.get("/result", async (request, response) => {
+    const results = [];
+
+    for (const candidateNumber of Object.keys(candidatesList)) {
+        results.push({
+            name: candidatesList[candidateNumber].name,
+            number: candidateNumber,
+            votes: (await getCandidateVotes(candidateNumber, bigchainDbConnection)).length
+        });
+    }
+
+    response.send(results);
+})
 
 app.listen(port, () => console.log(`Ouvindo porta ${port}`));
