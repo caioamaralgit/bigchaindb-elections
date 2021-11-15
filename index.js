@@ -28,8 +28,11 @@ app.get("/candidate", (request, response) =>
 );
 
 app.post("/candidate", async (request, response) => {
-    const candidateKeys = await returnNewUser(baseSeedWord);
     const candidateNumber = request.body.number;
+
+    const seed = candidateNumber + request.body.name.replace(/ /g, "") + (new Date()).getTime();
+
+    const candidateKeys = await returnNewUser(seed);
 
     candidatesList[candidateNumber] = {
         name: request.body.name,
@@ -59,7 +62,9 @@ app.post("/vote", async (request, response) => {
         return;
     }
 
-    const voterKeys = await returnNewUser(baseSeedWord);
+    const seed = request.body.document + request.body.name.replace(/ /g, "") + (new Date()).getTime();
+
+    const voterKeys = await returnNewUser(seed);
 
     const vote = await registerNewVote(voter, voterKeys, { name: candidate.name, number: candidateNumber}, bigchainDbConnection);
 
@@ -68,9 +73,16 @@ app.post("/vote", async (request, response) => {
         return;
     }
 
+    const transferVoteTransaction = await transferVote(vote.id, voterKeys, candidate.keys, bigchainDbConnection);
+
+    if (!transferVoteTransaction.success) {
+        response.send({ success: false, error: "Falha ao transferir voto." });
+        return;
+    }
+
     response.send({
         success: true,
-        id: vote.id
+        id: transferVoteTransaction.id
     });
 });
 
